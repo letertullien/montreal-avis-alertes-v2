@@ -1,0 +1,140 @@
+
+.header {
+  background-color: #ffffff;         
+  border-bottom: 1px solid #dee2e6; /* ligne de séparation en bas */
+}
+
+.bandeau {
+  background-color: #1a1a2e;    
+  display: flex;                 
+  justify-content: flex-end;    /* contenu poussé à droite */
+  padding: 0.3rem 1.5rem;       /* espace haut/bas gauche/droite */
+}
+
+.bandeauLien {
+  font-family: "Nunito Sans", sans-serif;  
+  font-size: 0.9rem;            
+  font-weight: bold;            
+  color: #ffffff;               
+  text-decoration: none;        /* pas de soulignement */
+}
+
+.bandeauLien:hover {
+  color: #00C896;               
+  text-decoration: none;        /* pas de soulignement au survol */
+}
+
+.disposition {
+  max-width: 1200px;    /* largeur maximale */
+  margin: 0 auto;       /* centré horizontalement */
+  padding: 0 1.5rem;    /* espace gauche/droite */
+  height: 64px;         
+  display: flex;        /* flexbox */
+  align-items: center;  /* centré verticalement */
+  gap: 1rem;            /* espace entre les élements */
+}
+
+.logo {
+  display: flex;         /* flexbox */
+  align-items: center;   /* centré verticalement */
+  text-decoration: none; /* pas de soulignement */
+  flex-shrink: 0;        /* ne pas rétrécir */
+}
+
+.logoImg {
+  height: 46px;  
+  width: auto;  /* largeur proportionnelle */
+}
+
+.profilImg {
+  height: 26px;  
+  width: auto;  /* largeur proportionnelle */
+}
+
+.separateur {
+  width: 1px;                    /* trait fin vertical */
+  height: 32px;                  /* hauteur du séparateur */
+  background-color: #dee2e6;    
+  margin: 0 0.5rem;              /* espace gauche/droite */
+}
+
+.menu {
+  display: flex;        /* icône et texte côte à côte */
+  align-items: center;  /* alignés verticalement */
+  gap: 0.4rem;          /* espace entre icône et texte */
+  font-family: "Nunito Sans", sans-serif; 
+  font-size: 0.95rem;    
+  font-weight: 600;     /* semi-gras */
+  color: #1a1a2e;       
+  cursor: pointer;      /* curseur main au survol */
+  background: none;     /* pas de fond */
+  border: none;         
+  padding: 0.25rem 0.5rem; /* espace intérieur */
+}
+
+.menu:hover {
+  text-decoration: underline; /* soulignement au survol */
+}
+
+.menuIcon {
+  display: flex;          /* flexbox */
+  flex-direction: column; /* empile les barres verticalement */
+  gap: 4px;               /* espace entre les barres */
+}
+
+.menuIcon span {
+  display: block;              /* occupe toute la largeur */
+  width: 18px;                 /* largeur de chaque barre */
+  height: 2px;                 /* épaisseur de chaque barre */
+  background-color: #1a1a2e;   
+}
+
+.droite {
+  margin-left: auto;    /* pousse tout le bloc à droite */
+  display: flex;        /* flexbox */
+  align-items: center;  /* centré verticalement */
+  gap: 0.25rem;         /* espace entre les éléments */
+}
+
+.btnIcone {
+  display: flex;        /* icône et texte côte à côte */
+  align-items: center;  /* alignés verticalement */
+  gap: 0.4rem;          /* espace entre icône et texte */
+  font-family: "Nunito Sans", sans-serif;  
+  font-size: 0.9rem;     
+  font-weight: 600;     /* semi-gras */
+  color: #1a1a2e;        
+  background: none;      
+  border: none;          
+  padding: 0.4rem 0.75rem; /* espace intérieur haut/bas gauche/droite */
+  cursor: pointer;      /* curseur main au survol */
+  border-radius: 4px;   
+}
+
+.btnIcone:hover {
+  color: #00C896;  
+}
+
+.separateurDroite {
+  width: 1px;                /* trait fin vertical */
+  height: 28px;              /* hauteur du séparateur */
+  background-color: #dee2e6;  
+}
+
+@media (max-width: 600px) {
+  .bandeau {
+    padding: 0.3rem 1rem; /* espace réduit sur mobile */
+  }
+
+  .disposition {
+    padding: 0 1rem; /* espace réduit sur mobile */
+  }
+
+  .btnIcone span {
+    display: none; /* cache le texte, garde seulement l'icône */
+  }
+
+  .menu span {
+    display: none; /* cache le texte, garde seulement l'icône burger */
+  }
+}
