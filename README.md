@@ -2,72 +2,33 @@
 
 Application React transformée en PWA installable et fonctionnelle hors connexion, branchée sur les données réelles de la Ville de Montréal.
 
-## Étudiant
-
-Tertullien KOUMETIO TANE
+---
 
 ## Installation et démarrage
 
 ### Prérequis
-
 - Node.js 18+
 - npm
 
 ### Étapes
 
 ```bash
-# 1. Cloner le dépôt
-git clone <url-du-depot>
-cd avis-alertes-montreal
-
-# 2. Installer les dépendances
+# 1. Installer les dépendances
 npm install
 
-# 3. Lancer en développement
+# 2. Lancer en développement
 npm run dev
+# → http://localhost:5173
 
-# 4. Build de production
+# 3. Build de production
 npm run build
 
-# 5. Prévisualiser le build (requis pour tester le SW et la PWA)
+# 4. Prévisualiser le build (requis pour tester le SW et la PWA)
 npm run preview
+# → http://localhost:4173
 ```
 
-L'application est accessible à `http://localhost:5173` en dev et `http://localhost:4173` en preview.
-
----
-
-## Structure du projet
-
-```
-src/
-├── components/
-│   ├── Abonnement/           ← encart S'abonner
-│   ├── BandeauHorsLigne/     ← indicateur visuel mode hors-ligne
-│   ├── CarteAlerte/          ← carte d'une alerte dans la liste
-│   ├── Chargement/           ← spinner de chargement
-│   ├── Entete/               ← en-tête partagée
-│   ├── Layout/               ← mise en page commune
-│   └── PiedDePage/           ← pied de page
-├── pages/
-│   ├── Accueil/              ← liste avec recherche, filtres multi-valeurs, chips
-│   │   ├── BoutonSupprimer/  ← bouton Tout effacer
-│   │   └── filtre/           ← composant Filtre
-│   ├── DetailAlerte/         ← page de détail avec lien vers montreal.ca
-│   └── PageIntrouvable/      ← page 404
-├── services/
-│   └── alertes.js            ← appels API + mapping + extraction arrondissement
-├── utils/
-│   └── Normaliser.js         ← normalisation pour recherche insensible aux accents
-├── App.jsx
-├── main.jsx                  ← point d'entrée + enregistrement Service Worker
-└── sw.js                     ← pas utilisé (voir public/sw.js)
-public/
-├── sw.js                     ← Service Worker
-├── manifest.webmanifest      ← manifeste PWA
-├── icons/                    ← icônes 192, 512, maskable, Apple Touch
-└── screenshots/              ← captures mobile et desktop pour l'install PWA
-```
+> Le Service Worker et le mode hors-ligne ne fonctionnent qu'en mode preview (`npm run preview`), pas en développement.
 
 ---
 
@@ -80,76 +41,116 @@ https://donnees.montreal.ca/api/3/action/datastore_search
   ?resource_id=fc6e5f85-7eba-451c-8243-bdf35c2ab336
 ```
 
-### Normalisation (mapping)
+### Particularités
 
-L'API ne fournit pas de champ `arrondissement`. Une fonction `extraireArrondissement()` dans `src/services/alertes.js` extrait l'arrondissement depuis le titre via une expression régulière :
+- **Pas de champ arrondissement** dans l'API — extrait du titre via une liste fixe des 18 arrondissements officiels avec normalisation des tirets et accents.
+- **Pas de description** — un lien vers `montreal.ca` remplace le contenu complet.
+- **GeoJSON** (bonus) — coordonnées GPS récupérées depuis un second endpoint pour afficher la carte.
 
-```
-"...arrondissement de Montréal-Nord" → "Montréal-Nord"
-"...arrondissement du Plateau-Mont-Royal" → "Plateau-Mont-Royal"
-```
+### Mapping API → modèle interne
 
-| Champ API       | Champ interne   | Transformation                        |
-|-----------------|-----------------|---------------------------------------|
-| `_id`           | `id`            | Converti en string                    |
-| `titre`         | `titre`         | Direct                                |
-| *(absent)*      | `arrondissement`| Extrait du titre par regex            |
-| `type`          | `sujet`         | Direct                                |
-| `date_debut`    | `dateEmission`  | Tronqué à 10 caractères (YYYY-MM-DD)  |
-| `date_fin`      | `dateFin`       | Tronqué à 10 caractères (YYYY-MM-DD)  |
-| `lien`          | `lien`          | Direct                                |
+| Champ API | Champ interne | Transformation |
+|---|---|---|
+| `_id` | `id` | Converti en string |
+| `titre` | `titre` | Direct |
+| *(absent)* | `arrondissement` | Extrait du titre par liste fixe |
+| `type` | `sujet` | Direct |
+| `date_debut` | `dateEmission` | Tronqué à 10 caractères (YYYY-MM-DD) |
+| `date_fin` | `dateFin` | Tronqué à 10 caractères (YYYY-MM-DD) |
+| `lien` | `lien` | Direct |
 
 ---
 
-## Fonctionnalités PWA
+## Stratégie de mise en cache
 
-### Manifeste
+| Ressource | Stratégie | Justification |
+|---|---|---|
+| Assets statiques (JS, CSS, HTML, images) | **Cache First** (précache Workbox) | Ces fichiers ne changent pas entre les visites — répondre depuis le cache est instantané et permet le démarrage hors-ligne |
+| API Ville de Montréal (`donnees.montreal.ca`) | **Stale-While-Revalidate** | L'utilisateur voit les données immédiatement depuis le cache, pendant que le SW récupère une version fraîche en arrière-plan |
 
-Fichier `public/manifest.webmanifest` configuré avec :
-- `name`, `short_name`, `description`, `start_url`, `scope`
-- `display: "standalone"`, `orientation: "portrait"`
-- `theme_color`, `background_color`, `lang: "fr-CA"`
-- Icônes : 192×192 (any), 512×512 (any), 512×512 (maskable), 180×180 (Apple Touch)
-- Screenshots mobile (narrow) et desktop (wide) pour l'interface d'installation enrichie
+Configuré dans `vite.config.js` via `vite-plugin-pwa` (Workbox) :
 
-### Service Worker
+```javascript
+workbox: {
+  globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/donnees\.montreal\.ca\/api\//,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'api-avis-mtl',
+        expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+      },
+    },
+  ],
+},
+```
 
-Fichier `public/sw.js` — enregistré depuis `src/main.jsx`.
+---
 
-#### Stratégies de mise en cache
+## Mode hors-ligne
 
-| Ressource | Stratégie | Cache | Justification |
-|---|---|---|---|
-| Assets statiques (JS, CSS, HTML, images) | **Cache First** | `avis-mtl-statique-v1` | Ces fichiers changent rarement ; répondre depuis le cache est instantané |
-| API Ville de Montréal (`donnees.montreal.ca`) | **Stale-While-Revalidate** | `avis-mtl-api-v1` | L'utilisateur voit les données immédiatement depuis le cache, pendant que le SW récupère une version fraîche en arrière-plan |
-
-#### Mode hors-ligne
-
-- Le shell applicatif (index.html, JS, CSS) est précaché à l'installation du SW
+- Le shell applicatif (HTML, JS, CSS) est précaché à l'installation du SW
 - Les dernières alertes téléchargées restent consultables
 - La navigation entre l'accueil et la page de détail fonctionne
-- Un bandeau jaune informe l'utilisateur qu'il est hors connexion (composant `BandeauHorsLigne`)
+- Un bandeau jaune informe l'utilisateur qu'il est hors connexion
 
-### Scores Lighthouse (build de production)
+Pour tester : DevTools → Application → Service Workers → cocher **Offline** → recharger la page.
+
+---
+
+## Fonctionnalités
+
+- **Données réelles** — API de la Ville de Montréal
+- **Filtres multi-valeurs** — arrondissement et sujet (combinaison OU à l'intérieur, ET entre filtres) avec chips supprimables individuellement
+- **Recherche** — insensible aux accents
+- **Pagination intelligente** — 10 alertes au démarrage, cache complet chargé au premier filtre
+- **PWA installable** — Android (Chrome) et iOS (Safari → Sur l'écran d'accueil)
+- **Mode hors-ligne** — shell précaché + bandeau indicateur
+- **Carte GeoJSON** (bonus) — localisation de chaque alerte sur OpenStreetMap via Leaflet
+
+---
+
+## Structure des fichiers clés
+
+```
+src/
+├── services/
+│   ├── alertes.js        ← Appels API, mapping, GeoJSON
+│   └── listes.js         ← Liste arrondissements + extraction + getSujets()
+├── pages/
+│   ├── Accueil/          ← Liste, filtres, recherche, pagination
+│   └── DetailAlerte/     ← Page de détail + carte Leaflet
+└── components/
+    └── BandeauHorsLigne/ ← Indicateur mode hors-ligne
+```
+
+---
+
+## Scores Lighthouse
+
+Testé sur `npm run preview` en mode navigation privée, émulation Moto G Power, connexion 4G lente.
 
 | Catégorie | Score |
 |---|---|
-| Performances | 76 |
-| Accessibilité | 92 |
-| Bonnes pratiques | 100 |
-| SEO | 83 |
-
-> La catégorie PWA a été intégrée dans "Bonnes pratiques" depuis Lighthouse 12.
+| **Performances** | 97 |
+| **Accessibilité** | 100 |
+| **Bonnes pratiques** | 100 |
+| **SEO** | 100 |
 
 ---
 
-## Choix techniques
+## Dépendances principales
 
-### Filtres multi-valeurs
-Les filtres arrondissement et sujet utilisent des **tableaux** au lieu de strings. La logique applique un **OU** à l'intérieur d'un filtre (plusieurs arrondissements sélectionnés) et un **ET** entre les filtres (arrondissement ET sujet). Les valeurs actives s'affichent sous forme de chips supprimables individuellement.
+```bash
+# Production
+npm install react react-dom react-router-dom leaflet react-leaflet
 
-### Pagination — Charger plus
-L'API supporte `limit` et `offset`. Le bouton "Charger plus" appelle `getAlertes(offset)` avec l'offset courant pour charger les 10 alertes suivantes sans recharger les précédentes.
+# Développement
+npm install -D vite @vitejs/plugin-react vite-plugin-pwa
+```
 
-### Séparation des responsabilités
-`src/services/alertes.js` contient uniquement la logique d'accès aux données (fetch + mapping). Les composants ne connaissent pas la structure brute de l'API — ils travaillent uniquement avec le modèle interne.
+
+![Scores Lighthouse](./screenshots/lighthouse.png)
+
+
