@@ -151,6 +151,6 @@ npm install -D vite @vitejs/plugin-react vite-plugin-pwa
 ```
 
 
-![Scores Lighthouse](./screenshots/lighthouse.png)
+ ![Scores Lighthouse](./public/screenshots/lighthouse.png)
 
 
